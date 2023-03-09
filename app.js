@@ -5,8 +5,15 @@ const express = require("express");
 
 const app = express();
 const ExpressError = require("./expressError")
+const companiesRoutes = require('./routes/companies');
+const invoicesRoutes = require('./routes/invoices');
+
 
 app.use(express.json());
+
+app.use('/companies', companiesRoutes);
+
+app.use('/invoices', invoicesRoutes);
 
 
 /** 404 handler */
@@ -27,5 +34,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-
-module.exports = app;
+app.listen(3000, function () {
+  console.log("Listening on 3000");
+});
+// module.exports = app;
