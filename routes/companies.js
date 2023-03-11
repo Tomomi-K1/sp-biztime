@@ -2,13 +2,15 @@ const express = require('express');
 const router = new express.Router();
 const db = require('../db');
 const ExpressError = require('../expressError');
+// sp answer
+// const slugify = require("slugify");
 
 // ***return list of companies ***//
 // Returns list of companies, like {companies: [{code, name}, ...]}
 router.get('/', async (req, res, next) => {
     try{
-        const results = await db.query(`SELECT code, name FROM companies`);
-        return res.json({companies:results.rows});
+        const results = await db.query(`SELECT code, name FROM companies ORDER BY name`);
+        return res.json({"companies":results.rows});
     } catch(e){
         return next(e);
     }
@@ -26,9 +28,12 @@ router.get('/:code', async (req, res, next) => {
         if(results.rows.length ===0) throw new ExpressError(`Company with code ${paramCode} does not exist`, 404);
         
         // return res.json({company: results.rows[0]})
-        let invoices = await db.query(`SELECT * FROM invoices WHERE comp_code=$1`, [paramCode])
-        let {code, name, description} =results.rows[0]
-        return res.json({company: {code, name, description, invoices:invoices.rows}});
+        let invResults = await db.query(`SELECT id FROM invoices WHERE comp_code=$1`, [paramCode])
+        let company =results.rows[0];
+        let invoices = invResults.rows;
+        // adding property called invoices to company object
+        company.invoices = invoices.map(inv => inv.id);
+        return res.json({"company": company});
     
     } catch(e){
         return next(e);
@@ -41,8 +46,10 @@ router.get('/:code', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
     try{
         const {code, name, description} = req.body;
+        // sp answer
+        // let code = slugify(name, {lower: true});
         const results = await db.query(`INSERT INTO companies (code, name, description) VALUES ($1, $2, $3) RETURNING code, name, description`, [code, name, description])
-        return res.status(201).json({company: results.rows[0]})
+        return res.status(201).json({"company": results.rows[0]})
     } catch(e){
         return next(e);
     }
@@ -59,7 +66,7 @@ router.put('/:code', async (req, res, next) => {
         // error handling when code did not exist//
         if(results.rows.length ===0) throw new ExpressError(`Company with code ${code} does not exist`, 404)
 
-        return res.json({company: results.rows[0]})
+        return res.json({"company": results.rows[0]})
 
     } catch(e){
         return next(e);
@@ -75,7 +82,7 @@ router.delete('/:code', async (req, res, next) => {
          // error handling when code did not exist//
          if(results.rows.length ===0) throw new ExpressError(`Company with code ${code} does not exist`, 404)
 
-        return res.json({status: "deleted"})
+        return res.json({"status": "deleted"})
 
     } catch(e){
         return next(e);
