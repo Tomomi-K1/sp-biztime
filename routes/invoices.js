@@ -95,22 +95,24 @@ router.put('/:id', async (req, res, next) => {
         let paid_date;
         const paramId = req.params.id;
         const {amt, paid } = req.body;
+
+        // get current paid & paid_date information
         const paidStatus = await db.query(`SELECT paid, paid_date FROM invoices WHERE id=$1`, [paramId]);
-        // console.log(paidStatus.rows[0].paid);
-        // console.log(paidStatus.rows[0].paid_date);
-         if(paidStatus === false && paid === true){
+      
+         if(paidStatus.rows[0].paid === false && paid === true){
              paid_date = new Date().toJSON();
-        } else if(paidStatus ===true && paid === false) { 
+        } else if(paidStatus.rows[0].paid ===true && paid === false) { 
              paid_date = null;
         } else{
             paid_date = paidStatus.rows[0].paid_date;
         }
-        const foundInvoice = await db.query(`UPDATE invoices SET amt=$1 paid=$2, paid_date=$3 WHERE id=$4 RETURNING *`, [amt, paid, paid_date, paramId]);
-        console.log(foundInvoice);
-        // error handling
-        if(foundInvoice.rows.length === 0) throw new ExpressError (`Invoice with id ${paramId} cannot be found`, 404)
+        
+        const updatedInvoice = await db.query(`UPDATE invoices SET amt=$1, paid=$2, paid_date=$3 WHERE id=$4 RETURNING *`, [amt, paid, paid_date, paramId]);
 
-        return res.json({invoice:foundInvoice.rows[0]});
+        // error handling
+        if(updatedInvoice.rows.length === 0) throw new ExpressError (`Invoice with id ${paramId} cannot be found`, 404)
+
+        return res.json({invoice:updatedInvoice.rows[0]});
 
     } catch(e){
         return next(e);
