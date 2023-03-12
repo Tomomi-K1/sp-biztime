@@ -39,7 +39,7 @@ router.get('/:id', async (req, res, next) => {
         if(foundInvoice.rows.length === 0) throw new ExpressError (`Invoice with id ${paramId} cannot be found`, 404)
 
         let {id, comp_code, amt, paid, add_date, paid_date, name, description} =foundInvoice.rows[0]
-        return res.json({invoices: {id, amt, paid, add_date, paid_date, company:{comp_code, name, description}}});
+        return res.json({invoice: {id, amt, paid, add_date, paid_date, company:{code:comp_code, name, description}}});
         // const data = result.rows[0];
         // const invoice = {
         //   id: data.id,
@@ -70,7 +70,7 @@ router.post('/', async (req, res, next) => {
         if(company.rows.length ===0) throw new ExpressError('invoice id does not exits on companies table. Please add it to companies table first', 404);
 
         const results = await db.query(`INSERT INTO invoices (comp_code, amt) VALUES ($1, $2) RETURNING id, comp_code, amt, paid, add_date, paid_date`, [comp_code, amt]);
-        return res.status(201).json({"invoices": results.rows[0]})
+        return res.status(201).json({"invoice": results.rows[0]})
     } catch (e){
         return next(e);
     }
@@ -89,7 +89,7 @@ router.put('/:id', async (req, res, next) => {
         // error handling
         if(foundInvoice.rows.length === 0) throw new ExpressError (`Invoice with id ${paramId} cannot be found`, 404)
 
-        return res.json({invoices:foundInvoice.rows[0]});
+        return res.json({invoice:foundInvoice.rows[0]});
 
     } catch(e){
         return next(e);
