@@ -1,3 +1,4 @@
+const e = require('express');
 const express = require('express');
 const router = new express.Router();
 const db = require('../db');
@@ -62,6 +63,7 @@ router.get('/:id', async (req, res, next) => {
 // POST /invoices // Adds an invoice.
 // Needs to be passed in JSON body of: {comp_code, amt}
 // Returns: {invoice: {id, comp_code, amt, paid, add_date, paid_date}}
+
 router.post('/', async (req, res, next) => {
     try{
         const {comp_code, amt} = req.body;
@@ -80,12 +82,31 @@ router.post('/', async (req, res, next) => {
 // If invoice cannot be found, returns a 404.
 // Needs to be passed in a JSON body of {amt}
 // Returns: {invoice: {id, comp_code, amt, paid, add_date, paid_date}}
+
+// Change the logic of this route:
+// Needs to be passed in a JSON body of {amt, paid}
+// If paying unpaid invoice: sets paid_date to today
+// If un-paying: sets paid_date to null
+// Else: keep current paid_date
+// Returns: {invoice: {id, comp_code, amt, paid, add_date, paid_date}}
+
 router.put('/:id', async (req, res, next) => {
     try{
+        let paid_date;
         const paramId = req.params.id;
-        const amount = req.body.amt;
-        const foundInvoice = await db.query(`UPDATE invoices SET amt=$1 WHERE id=$2 RETURNING *`, [amount, paramId]);
-        
+        const {amt, paid } = req.body;
+        const paidStatus = await db.query(`SELECT paid, paid_date FROM invoices WHERE id=$1`, [paramId]);
+        // console.log(paidStatus.rows[0].paid);
+        // console.log(paidStatus.rows[0].paid_date);
+         if(paidStatus === false && paid === true){
+             paid_date = new Date().toJSON();
+        } else if(paidStatus ===true && paid === false) { 
+             paid_date = null;
+        } else{
+            paid_date = paidStatus.rows[0].paid_date;
+        }
+        const foundInvoice = await db.query(`UPDATE invoices SET amt=$1 paid=$2, paid_date=$3 WHERE id=$4 RETURNING *`, [amt, paid, paid_date, paramId]);
+        console.log(foundInvoice);
         // error handling
         if(foundInvoice.rows.length === 0) throw new ExpressError (`Invoice with id ${paramId} cannot be found`, 404)
 
