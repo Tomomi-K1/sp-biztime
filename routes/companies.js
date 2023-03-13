@@ -22,16 +22,23 @@ router.get('/', async (req, res, next) => {
 router.get('/:code', async (req, res, next) => {
     try{
         const paramCode = req.params.code;
-        const results = await db.query(`SELECT * FROM companies WHERE code=$1`, [paramCode]);
+        const results = await db.query(
+            `SELECT c.code, c.name, c.description, ind.industry FROM companies AS c 
+             LEFT JOIN comp_industry AS i ON c.code = i.comp_code
+             LEFT JOIN industries AS ind ON i.ind_code = ind.ind_code 
+             WHERE c.code=$1`, [paramCode]);
+
         // error handling when code did not exist//
-        if(results.rows.length ===0) throw new ExpressError(`Company with code ${paramCode} does not exist`, 404);
-        
-        // return res.json({company: results.rows[0]})
-        let invResults = await db.query(`SELECT id FROM invoices WHERE comp_code=$1`, [paramCode])
-        let company =results.rows[0];
-        let invoices = invResults.rows;
+        if(results.rows.length ===0) throw new ExpressError(`Company with code ${paramCode} does not exist`, 404);     
+
+        const {code, name, description} = results.rows[0];
+        const company ={code, name, description};
+        const industries =results.rows.map(r=> r.industry)
+        const invResults = await db.query(`SELECT id FROM invoices WHERE comp_code=$1`, [paramCode])
+        const invoices = invResults.rows;
         // adding property called invoices to company object
         company.invoices = invoices.map(inv => inv.id);
+        company.industries = industries;
         return res.json({"company": company});
     
     } catch(e){
@@ -56,6 +63,7 @@ router.post('/', async (req, res, next) => {
 // ***update a company***//
 // Needs to be given JSON like: {name, description}
 // Returns update company object: {company: {code, name, description}}
+// when viewing details for a company, you can see the names of the industries for that company
 
 router.put('/:code', async (req, res, next) => {
     try{
